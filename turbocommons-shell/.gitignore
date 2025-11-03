@@ -1,0 +1,37 @@
+# Operating system common files
+.DS_Store
+.DS_Store?
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+thumbs.db
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.buildpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.sonarlint
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+/.angular/cache
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
