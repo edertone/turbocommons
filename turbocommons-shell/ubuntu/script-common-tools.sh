@@ -251,5 +251,11 @@ sct_add_cron_job() {
     # Add the new cron job
     (crontab -l 2>/dev/null; echo "$job") | crontab -
     
-    echo "Cron job added: $job"
+    # Test if the job was added
+    if crontab -l 2>/dev/null | grep -Fxq "$job"; then
+        echo "Cron job added successfully: $job"
+    else
+        echo "ERROR: Failed to add cron job: $job"
+        return 1
+    fi
 }
