@@ -241,18 +241,21 @@ sct_add_cron_job() {
     local schedule="$1"
     local command="$2"
     local job="$schedule $command"
-    local current_crontab
-    current_crontab=$(crontab -l 2>/dev/null)
-    
+    local current_crontab=$(crontab -l 2>/dev/null)
+
     # Check if the job already exists
     if echo "$current_crontab" | grep -Fxq -- "$job"; then
         echo "Cron job already exists, nothing done: $job"
         return 0
     fi
-    
-    # Add the new cron job
-    (echo "$current_crontab"; echo "$job") | crontab -
-    
+
+    # Add the new cron job, handling empty initial crontab
+    if [ -z "$current_crontab" ]; then
+        echo "$job" | crontab -
+    else
+        (echo "$current_crontab"; echo "$job") | crontab -
+    fi
+
     # Test if the job was added
     if crontab -l 2>/dev/null | grep -Fxq -- "$job"; then
         echo "Cron job added successfully: $job"
