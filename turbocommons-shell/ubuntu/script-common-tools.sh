@@ -276,3 +276,22 @@ sct_add_cron_job() {
     fi
 }
 
+# Executes a script in a subshell with the provided environment variables.
+# This prevents the subscript from exiting the parent script if something goes wrong.
+# Usage: execute_subscript_with_env "/path/to/script.sh" "VAR1=value1" "VAR2=value2" ...
+sct_execute_subscript_isolated_with_env_vars() {
+    local script_path="$1"
+    shift
+    
+    if [ ! -f "$script_path" ]; then
+        sct_console_show_error "Subscript not found at '$script_path'"
+        return 1
+    fi
+
+    chmod +x "$script_path"
+
+    # Execute the script in a subshell `( ... )` with the specified environment variables.
+    # This isolates the execution and prevents `exit` calls from affecting the parent script.
+    (env "$@" "$script_path")
+}
+
