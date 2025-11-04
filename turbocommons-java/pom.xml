@@ -1,0 +1,29 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <groupId>org.turboframework</groupId>
+  <artifactId>turbocommons-java</artifactId>
+  <version>1.0.0</version>
+  <name>TurboCommons-Java</name>
+  <description>General purpose library that implements frequently used and generic software development tasks</description>
+  <url>https://github.com/edertone/TurboCommons</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>edertone</id>
+      <name>Edertone</name>
+      <url>https://edertone.com</url>
+    </developer>
+  </developers>
+</project>
