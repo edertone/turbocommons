@@ -188,11 +188,10 @@ sct_create_file_if_missing_and_set_permisions() {
 sct_docker_compose_up_with_env_vars() {
     
     # Export the provided environment variables
-    echo -e "\nStarting Docker containers with env "
+    echo -e "\nStarting Docker containers with custom env vars"
     for env_var in "$@"; do
         var_name="${env_var%%=*}"
         var_value="${env_var#*=}"
-        echo " $var_name=$var_value"
         export "$var_name"="$var_value"
     done
 
@@ -214,11 +213,10 @@ sct_docker_compose_up_with_env_vars() {
 sct_docker_compose_down_with_env_vars() {
     
     # Export the provided environment variables
-    echo -e "\nStop Docker containers with env "
+    echo -e "\nStop Docker containers with custom env vars"
     for env_var in "$@"; do
         var_name="${env_var%%=*}"
         var_value="${env_var#*=}"
-        echo " $var_name=$var_value"
         export "$var_name"="$var_value"
     done
 
