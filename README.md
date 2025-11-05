@@ -25,13 +25,6 @@ npm install turbocommons-ts
 import { StringUtils } from 'turbocommons-ts';
 let n = StringUtils.countWords("word1 word2 word3");
 ```
-- Javascript 5:
-```
-npm install turbocommons-es5
-<script src="turbocommons-es5/turbocommons-es5.js"></script>
-var StringUtils = org_turbocommons.StringUtils;
-var n = StringUtils.countWords("word1 word2 word3");
-```
 - Javascript 6:
 ```
 npm install turbocommons-es6
@@ -45,13 +38,20 @@ npm install turbocommons-ts
 const {StringUtils} = require('turbocommons-ts');
 var n = StringUtils.countWords("word1 word2 word3");
 ```
+- Ubuntu shell scripts (.sh):
+```
+# Load turbocommons common tools from github
+source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/script-common-tools.sh")
+sct_user_must_exist "username" "username must exist!"
+```
 
 ### Language support
 
 - Php (7 or more recommended)
 - Typescript
-- Javascript 5
-- Javascript 6
+- Javascript
+- Java
+- Shell script
 
 We want to increase this list. So! if you want to translate the library to your language of choice, please contact us! We need your help to port this library to as many languages as possible, and more important, we need to code the SAME unit tests across all the implemented languages. This is the only way to guarantee that the library delivers exactly the same behavior everywhere.
 
