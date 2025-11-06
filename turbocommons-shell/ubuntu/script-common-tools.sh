@@ -81,7 +81,7 @@ sct_create_and_setup_sftp_user() {
         return 1
     fi
     
-    echo "Setting up SFTP user '$USERNAME:$USER_GROUP' with sftp root folder '$SFTP_ROOT_FOLDER'..."
+    echo "Setting up SFTP user '$USERNAME:$USER_GROUP' with SFTP root folder '$SFTP_ROOT_FOLDER'..."
     
     # Create group if it does not exist
     if ! getent group "$USER_GROUP" > /dev/null; then
@@ -115,7 +115,7 @@ Match User $USERNAME
         systemctl restart ssh
     fi
     
-    echo "User sftp '$USERNAME' created successfully."
+    echo "User SFTP '$USERNAME' created successfully."
 }
 
 # Prompt the user for a value and set it to a variable (empty input is not allowed)
