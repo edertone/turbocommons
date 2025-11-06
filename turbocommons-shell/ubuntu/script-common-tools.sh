@@ -245,7 +245,7 @@ sct_add_cron_job() {
     local job
 
     if [ -n "$timezone" ]; then
-        job="TZ=$timezone $schedule $command"
+        job="$schedule TZ=$timezone $command"
     else
         job="$schedule $command"
     fi
