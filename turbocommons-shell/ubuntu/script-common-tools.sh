@@ -232,24 +232,14 @@ sct_docker_compose_down_with_env_vars() {
 
 # Add a cron job for the current user, avoiding duplicates (if the job exists, nothing is done)
 # Job will be added to the user that is currently running the script
-# Notice: A timezone can be specified for the job on the third parameter. If not specified, the system timezone will be used.
-# Usage: sct_add_cron_job "0 5 * * *" "task command" "timezone"
-# Example: sct_add_cron_job "0 5 * * *" "echo hello" "Europe/Madrid"
+# IMPORTANT: The schedule will use the system timezone, normally UTC
+# Usage: sct_add_cron_job "0 5 * * *" "task command"
+# Example: sct_add_cron_job "0 5 * * *" "echo hello"
 sct_add_cron_job() {
     local schedule="$1"
     local command="$2"
     
-    # Optional, e.g., Europe/Madrid
-    local timezone="$3"
-    
-    local job
-
-    if [ -n "$timezone" ]; then
-        job="$schedule TZ=$timezone $command"
-    else
-        job="$schedule $command"
-    fi
-
+    local job="$schedule $command"
     local current_crontab=$(crontab -l 2>/dev/null)
 
     # Check if the job already exists
