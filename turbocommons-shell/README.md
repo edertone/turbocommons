@@ -14,6 +14,9 @@ To import a set of utilities into your own script, simply put the following at t
 # Load turbocommons common tools from github
 source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/script-common-tools.sh")
 
+
+# Load turbocommons common tools from github
+source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/server-monitoring-tools.sh")
 ```
 
 Were <sha> is the hash of the commit you want to import. All the methods will be directly available for your script.
