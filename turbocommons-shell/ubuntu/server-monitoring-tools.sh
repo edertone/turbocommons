@@ -95,7 +95,7 @@ EOF
 # Waits for Grafana to be ready by polling its HTTP endpoint.
 # Returns 0 if Grafana is ready, 1 if it times out.
 smt_wait_for_grafana_to_be_ready() {
-    echo -e "\nWaiting for Grafana to be available..."
+    echo -e "Waiting for Grafana to be available..."
 
     local grafana_url="http://localhost:3000"
     local max_attempts=20
@@ -116,13 +116,22 @@ smt_wait_for_grafana_to_be_ready() {
 
 
 # Sets up Prometheus as a datasource in Grafana using the Grafana API.
-# Assumes Grafana is running on localhost:3000 with default credentials (admin/admin).
+# Assumes Grafana is running on localhost:3000
 # It will attempt to add the datasource if it doesn't exist.
+# Parameters: <admin_user> <admin_pass>
+# Usage: smt_setup_prometheus_as_grafana_datasource "admin" "admin"
 smt_setup_prometheus_as_grafana_datasource() {
-    echo -e "\nSetting up Prometheus as Grafana datasource..."
-
     local admin_user="$1"
     local admin_pass="$2"
+    
+    # Validate input parameters
+    if [ -z "$admin_user" ] || [ -z "$admin_pass" ]; then
+        echo "Usage: smt_setup_prometheus_as_grafana_datasource <admin_user> <admin_pass>"
+        return 1
+    fi
+    
+    echo -e "\nSetting up Prometheus as Grafana datasource..."
+
     local grafana_url="http://localhost:3000"
     local api_endpoint="/api/datasources"
     local datasource_name="Prometheus"
@@ -166,6 +175,8 @@ smt_setup_prometheus_as_grafana_datasource() {
         echo "Response: $response"
         return 1
     fi
+    
+    echo ""
 }
 
 
