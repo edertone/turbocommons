@@ -4,40 +4,44 @@
 # Installs Prometheus, Grafana, and Node Exporter using Docker to monitor system metrics.
 # It creates the necessary configuration files and directories under /opt/prometheus-grafana
 # and uses docker-compose to manage the services.
-# Prometheus will be available at http://<host-ip>:9090
-# Grafana will be available at http://<host-ip>:3000 (default user/pass: admin/admin)
+# Grafana will be available at http://<host-ip>:3000 with the provided user and password
+# (defaults to admin/admin if not specified).
+# Usage: smt_install_prometheus_grafana [admin_user] [admin_password]
 smt_install_prometheus_grafana() {
-    echo -e "\nSetting up Prometheus, Grafana, and Node Exporter..."
+    local admin_user="${1:-admin}"
+    local admin_password="${2:-admin}"
 
+    echo -e "\nSetting up Prometheus, Grafana, and Node Exporter..."
+    
     # Ensure Docker is installed
     if ! command -v docker &> /dev/null; then
         echo "ERROR: Docker is not installed. Please install Docker and try again."
         exit 1
     fi
-
-    # Define paths were the monitoring containers docker compose project will reside
+    
+    # Define paths where the monitoring containers docker compose project will reside
     local base_dir="/opt/prometheus-grafana"
     local prometheus_dir="$base_dir/prometheus"
     local grafana_data_dir="$base_dir/grafana-data"
     local compose_file="$base_dir/docker-compose.yml"
     local prometheus_config="$prometheus_dir/prometheus.yml"
-
+    
     # Check if setup is already complete
     if [ -f "$compose_file" ] && docker compose -f "$compose_file" ps | grep -q "Up"; then
         echo "Prometheus and Grafana are already running."
         return 0
     fi
-
+    
     # Create directories
     mkdir -p "$prometheus_dir"
     mkdir -p "$grafana_data_dir"
     chmod 777 "$grafana_data_dir" # Grafana container runs as non-root and needs write access
-
+    
     # Create prometheus.yml
     cat > "$prometheus_config" << EOF
 global:
   scrape_interval: 15s
-
+    
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
@@ -46,8 +50,8 @@ scrape_configs:
     static_configs:
       - targets: ['node-exporter:9100']
 EOF
-
-    # Create docker-compose.yml
+    
+    # Create docker-compose.yml with environment variables for Grafana admin credentials
     cat > "$compose_file" << EOF
 services:
   prometheus:
@@ -60,33 +64,36 @@ services:
     ports:
       - "127.0.0.1:9090:9090"
     restart: unless-stopped
-
+    
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     volumes:
       - ./grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=$admin_user
+      - GF_SECURITY_ADMIN_PASSWORD=$admin_password
     ports:
       - "3000:3000"
     restart: unless-stopped
-
+    
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
     ports:
-      - "9100:9100"
+      - "127.0.0.1:9100:9100"
     restart: unless-stopped
 EOF
-
+    
     # Start services using Docker Compose
     if ! docker compose -f "$compose_file" up -d --quiet-pull > /dev/null; then
         echo "ERROR: Failed to start monitoring stack with Docker Compose."
         docker compose -f "$compose_file" logs
         return 1
     fi
-
+    
     echo "Prometheus and Grafana setup complete."
-    echo "Grafana is accessible at http://<your-ip>:3000 (default login: admin/admin)"
+    echo "Grafana is accessible at http://<your-ip>:3000 (login: $admin_user/$admin_password)"
     docker compose -f "$compose_file" ps
     echo ""
 }
