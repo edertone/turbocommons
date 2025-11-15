@@ -4,7 +4,7 @@
 # so that any error will print a message before exiting
 sct_enable_global_errors_handling() {
     set -e
-    trap 'echo "An error occurred. Exiting..."; exit 1' ERR
+    trap 'echo -e "\033[0;31mAn error occurred. Exiting...\033[0m"; exit 1' ERR
 }
 
 # Check if the current script runs as root
