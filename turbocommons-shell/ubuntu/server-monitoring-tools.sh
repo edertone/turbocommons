@@ -187,6 +187,7 @@ smt_setup_prometheus_as_grafana_datasource() {
     fi
 }
 
+
 # Imports the specified dashboard into Grafana using the Grafana API.
 # Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>
 # Example: smt_import_dashboard_into_grafana "admin" "admin" "1860"
@@ -194,34 +195,46 @@ smt_import_dashboard_into_grafana() {
     local admin_user="$1"
     local admin_pass="$2"
     local dashboard_id="$3"
-
+    
     # Validate input parameters
     if [ -z "$admin_user" ] || [ -z "$admin_pass" ] || [ -z "$dashboard_id" ]; then
         echo "Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>"
         return 1
     fi
-
+    
     echo "Importing dashboard $dashboard_id into Grafana..."
-
     local grafana_url="http://localhost:3000"
-    local api_endpoint="/api/dashboards/import"
-
+    local api_endpoint="/api/dashboards/db"
+    
     # Ensure curl is installed
     if ! command -v curl &> /dev/null; then
         echo "ERROR: curl is not installed. Please install curl and try again."
         return 1
     fi
-
+    
     # Wait for Grafana to be ready
     if ! smt_wait_for_grafana_to_be_ready; then
         return 1
     fi
-
-    # Import the dashboard
-    local payload="{\"dashboard\": {\"id\": $dashboard_id}, \"overwrite\": true}"
-    local response=$(curl -s -X POST -H "Content-Type: application/json" -u "$admin_user:$admin_pass" "$grafana_url$api_endpoint" -d "$payload")
-
-    if echo "$response" | grep -q "Dashboard imported"; then
+    
+    # Download the dashboard JSON from grafana.com
+    local dashboard_download_url="https://grafana.com/api/dashboards/$dashboard_id/revisions/latest/download"
+    local downloaded_json=$(curl -s "$dashboard_download_url")
+    if [ -z "$downloaded_json" ] || echo "$downloaded_json" | grep -q "not found"; then
+        echo "ERROR: Failed to download dashboard JSON from $dashboard_download_url."
+        return 1
+    fi
+    
+    # Import the dashboard using the correct payload
+    local response=$(curl -s -X POST -H "Content-Type: application/json" -u "$admin_user:$admin_pass" "$grafana_url$api_endpoint" -d @- <<EOF
+{
+  "dashboard": $downloaded_json,
+  "overwrite": true,
+  "folderUid": ""
+}
+EOF
+)
+    if echo "$response" | grep -q "success"; then
         echo "Dashboard $dashboard_id successfully imported into Grafana."
         echo ""
         return 0
