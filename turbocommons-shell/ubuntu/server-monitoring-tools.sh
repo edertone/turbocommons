@@ -7,7 +7,7 @@
 # Prometheus will be available at http://<host-ip>:9090
 # Grafana will be available at http://<host-ip>:3000 (default user/pass: admin/admin)
 smt_install_prometheus_grafana() {
-    echo "Setting up Prometheus, Grafana, and Node Exporter..."
+    echo -e "\nSetting up Prometheus, Grafana, and Node Exporter..."
 
     # Ensure Docker is installed
     if ! command -v docker &> /dev/null; then
@@ -58,7 +58,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     restart: unless-stopped
 
   grafana:
@@ -80,7 +80,7 @@ EOF
 
     # Start services using Docker Compose
     echo "Starting Docker containers for Prometheus, Grafana, and Node Exporter..."
-    if ! docker compose -f "$compose_file" up -d; then
+    if ! docker compose -f "$compose_file" up -d --quiet-pull > /dev/null; then
         echo "ERROR: Failed to start monitoring stack with Docker Compose."
         docker compose -f "$compose_file" logs
         return 1
@@ -90,6 +90,7 @@ EOF
     echo "Prometheus is accessible at http://<your-ip>:9090"
     echo "Grafana is accessible at http://<your-ip>:3000 (default login: admin/admin)"
     docker compose -f "$compose_file" ps
+    echo ""
 }
 
 

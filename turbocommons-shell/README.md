@@ -15,7 +15,7 @@ To import a set of utilities into your own script, simply put the following at t
 source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/script-common-tools.sh")
 
 
-# Load turbocommons common tools from github
+# Load turbocommons server monitoring tools from github
 source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/server-monitoring-tools.sh")
 ```
 
