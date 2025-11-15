@@ -93,8 +93,9 @@ EOF
     fi
     
     echo "Prometheus and Grafana setup complete."
-    echo "Grafana is accessible at http://<your-ip>:3000 (login: $admin_user/$admin_password)"
     docker compose -f "$compose_file" ps
+    echo ""
+    echo "Grafana is accessible at http://<your-ip>:3000 (login: $admin_user/$admin_password)"
     echo ""
 }
 
@@ -176,14 +177,14 @@ smt_setup_prometheus_as_grafana_datasource() {
 
     if echo "$response" | grep -q "Datasource added"; then
         echo "Prometheus successfully set as Grafana datasource."
+        echo ""
         return 0
     else
         echo "ERROR: Failed to add Prometheus datasource."
         echo "Response: $response"
+        echo ""
         return 1
     fi
-    
-    echo ""
 }
 
 
