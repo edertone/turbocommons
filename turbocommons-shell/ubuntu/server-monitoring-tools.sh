@@ -6,7 +6,7 @@
 # and uses docker-compose to manage the services.
 # Grafana will be available at http://<host-ip>:3000 with the provided user and password
 # (defaults to admin/admin if not specified).
-# Usage: smt_install_prometheus_grafana [admin_user] [admin_password]
+# Usage: smt_install_prometheus_grafana <grafana_admin_user> <grafana_admin_password>
 smt_install_prometheus_grafana() {
     local admin_user="${1:-admin}"
     local admin_password="${2:-admin}"
@@ -126,7 +126,7 @@ smt_wait_for_grafana_to_be_ready() {
 # Sets up Prometheus as a datasource in Grafana using the Grafana API.
 # Assumes Grafana is running on localhost:3000
 # It will attempt to add the datasource if it doesn't exist.
-# Parameters: <admin_user> <admin_pass>
+# Parameters: <grafana_admin_user> <grafana_admin_pass>
 # Usage: smt_setup_prometheus_as_grafana_datasource "admin" "admin"
 smt_setup_prometheus_as_grafana_datasource() {
     local admin_user="$1"
@@ -138,7 +138,7 @@ smt_setup_prometheus_as_grafana_datasource() {
         return 1
     fi
     
-    echo -e "\nSetting up Prometheus as Grafana datasource..."
+    echo "Setting up Prometheus as Grafana datasource..."
 
     local grafana_url="http://localhost:3000"
     local api_endpoint="/api/datasources"
@@ -187,73 +187,48 @@ smt_setup_prometheus_as_grafana_datasource() {
     fi
 }
 
+# Imports the specified dashboard into Grafana using the Grafana API.
+# Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>
+# Example: smt_import_dashboard_into_grafana "admin" "admin" "1860"
+smt_import_dashboard_into_grafana() {
+    local admin_user="$1"
+    local admin_pass="$2"
+    local dashboard_id="$3"
 
+    # Validate input parameters
+    if [ -z "$admin_user" ] || [ -z "$admin_pass" ] || [ -z "$dashboard_id" ]; then
+        echo "Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>"
+        return 1
+    fi
 
-# Configures Grafana with Prometheus as a data source and imports dashboard 1860.
-# This function should be called after smt_install_prometheus_grafana.
-#smt_setup_grafana_dashboard_1860() {
-#    echo -e "\nConfiguring Grafana data source and dashboard..."
-#
-#    local admin_user="$1"
-#    local admin_pass="$2"
-#    local grafana_url="http://$admin_user:$admin_pass@localhost:3000"
-#    local datasource_name="Prometheus"
-#    local dashboard_id=1860
-#
-#    # Wait for Grafana to be ready
-#    echo "Waiting for Grafana to be available..."
-#    until $(curl --output /dev/null --silent --head --fail "$grafana_url"); do
-#        printf '.'
-#        sleep 5
-#    done
-#    echo "Grafana is up!"
-#
-#    # 1. Check if data source already exists
-#    if curl -s "$grafana_url/api/datasources/name/$datasource_name" | grep -q "name"; then
-#        echo "Data source '$datasource_name' already exists."
-#    else
-#        echo "Creating Prometheus data source..."
-#        curl -s -X POST "$grafana_url/api/datasources" \
-#        -H "Content-Type: application/json" \
-#        --data-binary @- << EOF
-#{
-#    "name": "$datasource_name",
-#    "type": "prometheus",
-#    "url": "http://prometheus:9090",
-#    "access": "proxy",
-#    "isDefault": true
-#}
-#EOF
-#        echo -e "\nPrometheus data source created."
-#    fi
-#
-#    # 2. Import dashboard 1860 (Node Exporter Full)
-#    echo "Importing dashboard ID $dashboard_id..."
-#    
-#    # Get the dashboard JSON model from grafana.com via the Grafana API
-#    local dashboard_json=$(curl -s "$grafana_url/api/gnet/dashboards/$dashboard_id" | jq .json)
-#
-#    # Prepare the payload for importing the dashboard
-#    local import_payload=$(echo "$dashboard_json" | jq \
-#        --arg ds_name "$datasource_name" \
-#        '{
-#            "dashboard": .,
-#            "overwrite": true,
-#            "inputs": [
-#                {
-#                    "name": "DS_PROMETHEUS",
-#                    "type": "datasource",
-#                    "pluginId": "prometheus",
-#                    "value": $ds_name
-#                }
-#            ]
-#        }')
-#
-#    # Import the dashboard
-#    curl -s -X POST "$grafana_url/api/dashboards/db" \
-#    -H "Content-Type: application/json" \
-#    --data-binary "$import_payload"
-#
-#    echo -e "\nDashboard $dashboard_id imported successfully."
-#    echo -e "Configuration complete. You can now access the dashboard in Grafana.\n"
-#}
+    echo "Importing dashboard $dashboard_id into Grafana..."
+
+    local grafana_url="http://localhost:3000"
+    local api_endpoint="/api/dashboards/import"
+
+    # Ensure curl is installed
+    if ! command -v curl &> /dev/null; then
+        echo "ERROR: curl is not installed. Please install curl and try again."
+        return 1
+    fi
+
+    # Wait for Grafana to be ready
+    if ! smt_wait_for_grafana_to_be_ready; then
+        return 1
+    fi
+
+    # Import the dashboard
+    local payload="{\"dashboard\": {\"id\": $dashboard_id}, \"overwrite\": true}"
+    local response=$(curl -s -X POST -H "Content-Type: application/json" -u "$admin_user:$admin_pass" "$grafana_url$api_endpoint" -d "$payload")
+
+    if echo "$response" | grep -q "Dashboard imported"; then
+        echo "Dashboard $dashboard_id successfully imported into Grafana."
+        echo ""
+        return 0
+    else
+        echo "ERROR: Failed to import dashboard $dashboard_id."
+        echo "Response: $response"
+        echo ""
+        return 1
+    fi
+}
