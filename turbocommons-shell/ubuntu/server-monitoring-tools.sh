@@ -68,7 +68,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - 'storage.tsdb.retention.size=$retention_size'
+      - '--storage.tsdb.retention.size=$retention_size'
     ports:
       - "127.0.0.1:9090:9090"
     restart: unless-stopped
