@@ -6,10 +6,12 @@
 # and uses docker-compose to manage the services.
 # Grafana will be available at http://<host-ip>:3000 with the provided user and password
 # (defaults to admin/admin if not specified).
-# Usage: smt_install_prometheus_grafana <grafana_admin_user> <grafana_admin_password>
+# Usage: smt_install_prometheus_grafana <grafana_admin_user> <grafana_admin_password> <prometheus_retention_size>
+# Example: smt_install_prometheus_grafana "admin" "strongpassword" "2GB"
 smt_install_prometheus_grafana() {
     local admin_user="${1:-admin}"
     local admin_password="${2:-admin}"
+    local retention_size="${3:-1GB}"
 
     echo -e "\nSetting up Prometheus, Grafana, and Node Exporter..."
     
@@ -21,10 +23,11 @@ smt_install_prometheus_grafana() {
     
     # Define paths where the monitoring containers docker compose project will reside
     local base_dir="/opt/prometheus-grafana"
-    local prometheus_dir="$base_dir/prometheus"
-    local grafana_data_dir="$base_dir/grafana-data"
     local compose_file="$base_dir/docker-compose.yml"
+    local prometheus_dir="$base_dir/docker/prometheus"
     local prometheus_config="$prometheus_dir/prometheus.yml"
+    local prometheus_data_dir="$base_dir/data/prometheus"
+    local grafana_data_dir="$base_dir/data/grafana"
     
     # Check if setup is already complete
     if [ -f "$compose_file" ] && docker compose -f "$compose_file" ps | grep -q "Up"; then
@@ -36,7 +39,9 @@ smt_install_prometheus_grafana() {
     mkdir -p "$prometheus_dir"
     mkdir -p "$grafana_data_dir"
     chmod 777 "$grafana_data_dir" # Grafana container runs as non-root and needs write access
-    
+    mkdir -p "$prometheus_data_dir"
+    chmod 777 "$prometheus_data_dir"  # Prometheus runs as non-root (uid 65534), so ensure write access
+
     # Create prometheus.yml
     cat > "$prometheus_config" << EOF
 global:
@@ -58,9 +63,12 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
-      - ./prometheus:/etc/prometheus
+      - ./docker/prometheus:/etc/prometheus
+      - ./data/prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - 'storage.tsdb.retention.size=$retention_size'
     ports:
       - "127.0.0.1:9090:9090"
     restart: unless-stopped
@@ -69,7 +77,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     volumes:
-      - ./grafana-data:/var/lib/grafana
+      - ./data/grafana:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=$admin_user
       - GF_SECURITY_ADMIN_PASSWORD=$admin_password
@@ -189,6 +197,7 @@ smt_setup_prometheus_as_grafana_datasource() {
 
 
 # Imports the specified dashboard into Grafana using the Grafana API.
+# A famous dashboard ID is 1860 (Node Exporter Full)
 # Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>
 # Example: smt_import_dashboard_into_grafana "admin" "admin" "1860"
 smt_import_dashboard_into_grafana() {
