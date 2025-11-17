@@ -229,8 +229,8 @@ smt_import_dashboard_into_grafana() {
 EOF
 )
     if echo "$response" | grep -q "success"; then
-            echo -e "Dashboard $dashboard_id successfully imported into Grafana.\n"
-            return 0
+        echo -e "Dashboard $dashboard_id successfully imported into Grafana.\n"
+        return 0
     else
         sct_echo_red "ERROR: Failed to import dashboard $dashboard_id."
         echo "Response: $response"
