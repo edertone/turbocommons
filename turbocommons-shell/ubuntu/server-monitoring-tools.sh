@@ -229,8 +229,8 @@ smt_import_dashboard_into_grafana() {
 EOF
 )
     if echo "$response" | grep -q "success"; then
-        echo -e "Dashboard $dashboard_id successfully imported into Grafana.\n"
-        return 0
+            echo -e "Dashboard $dashboard_id successfully imported into Grafana.\n"
+            return 0
     else
         sct_echo_red "ERROR: Failed to import dashboard $dashboard_id."
         echo "Response: $response"
@@ -238,38 +238,3 @@ EOF
         return 1
     fi
 }
-
-
-# Sets a dashboard as the home default dashboard in Grafana.
-# This means that when users log in, they will see this dashboard by default.
-# Usage: smt_set_home_dashboard <grafana_admin_user> <grafana_admin_pass> <dashboard_uid>
-# example: smt_set_home_dashboard "admin" "admin" "1860"
-smt_set_home_dashboard() {
-    local admin_user="$1"
-    local admin_pass="$2"
-    local dashboard_uid="$3"
-
-    if [ -z "$admin_user" ] || [ -z "$admin_pass" ] || [ -z "$dashboard_uid" ]; then
-        sct_echo_red "Usage: smt_set_home_dashboard <grafana_admin_user> <grafana_admin_pass> <dashboard_uid>"
-        return 1
-    fi
-
-    local grafana_url="http://localhost:3000"
-    local api_endpoint="/api/user/preferences"
-    local payload="{\"homeDashboardUID\":\"$dashboard_uid\"}"
-
-    smt_wait_for_grafana_to_be_ready
-
-    local response=$(curl -s -X PUT -H "Content-Type: application/json" -u "$admin_user:$admin_pass" \
-        "$grafana_url$api_endpoint" -d "$payload")
-
-    if echo "$response" | grep -q "\"homeDashboardUID\""; then
-        echo -e "Dashboard $dashboard_uid set as home dashboard.\n"
-        return 0
-    else
-        sct_echo_red "ERROR: Failed to set home dashboard."
-        echo "Response: $response"
-        return 1
-    fi
-}
-
