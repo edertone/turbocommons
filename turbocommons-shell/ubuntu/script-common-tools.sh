@@ -1,16 +1,32 @@
 #!/bin/bash
 
+
+# Print text in green color, usually to indicate success
+sct_echo_green() {
+    echo -e "\e[32m$1\e[0m"
+}
+
+# Print text in yellow color, usually to indicate warnings or important info
+sct_echo_yellow() {
+    echo -e "\e[33m$1\e[0m"
+}
+
+# Print text in red color, usually to indicate errors
+sct_echo_red() {
+    echo -e "\e[31m$1\e[0m"
+}
+
 # Enables immediate exit on error and sets a custom error trap
 # so that any error will print a message before exiting
 sct_enable_global_errors_handling() {
     set -e
-    trap 'echo -e "\033[0;31mAn error occurred. Exiting...\033[0m"; exit 1' ERR
+    trap 'sct_echo_red "An error occurred. Exiting..." ; exit 1' ERR
 }
 
 # Check if the current script runs as root
 sct_script_must_run_as_root() {
     if [ "$EUID" -ne 0 ]; then
-        echo "Please run this script as root"
+        sct_echo_red "Please run this script as root"
         exit 1
     fi
 }
@@ -21,7 +37,7 @@ sct_user_must_exist() {
     local username="$1"
     local message="$2"
     if ! id -u "$username" > /dev/null 2>&1; then
-        echo "ERROR: User '$username' does not exist. $message"
+        sct_echo_red "ERROR: User '$username' does not exist. $message"
         exit 1
     fi
 }
@@ -31,7 +47,7 @@ sct_user_must_exist() {
 sct_setup_swap_if_not_enabled() {
     local swap_size="$1"
     if [ -z "$swap_size" ]; then
-        echo "Usage: sct_setup_swap <size> (e.g., 2G or 2048M)"
+        sct_echo_yellow "Usage: sct_setup_swap <size> (e.g., 2G or 2048M)"
         return 1
     fi
     if ! swapon --show | grep -q '^'; then
@@ -60,6 +76,22 @@ sct_install_docker_if_not_exists() {
     fi
 }
 
+# Checks if curl is installed, exits with error if not.
+sct_curl_must_be_installed() {
+    if ! command -v curl &> /dev/null; then
+        sct_echo_red "ERROR: curl is not installed. Please install curl and try again."
+        exit 1
+    fi
+}
+
+# Checks if docker is installed, exits with error if not.
+sct_docker_must_be_installed() {
+    if ! command -v docker &> /dev/null; then
+        sct_echo_red "ERROR: Docker is not installed. Please install Docker and try again."
+        exit 1
+    fi
+}
+
 # Create and setup a SFTP user
 # important: The SFTP root folder must exist and be owned by root
 # Usage: sct_create_and_setup_sftp_user "username" "password" "group" "sftp_root_folder"
@@ -71,13 +103,13 @@ sct_create_and_setup_sftp_user() {
 
     # Validate input parameters
     if [ -z "$USERNAME" ] || [ -z "$USER_PASSWORD" ] || [ -z "$USER_GROUP" ] || [ -z "$SFTP_ROOT_FOLDER" ]; then
-        echo "Usage: sct_create_and_setup_sftp_user <username> <password> <group> <sftp_root_folder>"
+        sct_echo_red "Usage: sct_create_and_setup_sftp_user <username> <password> <group> <sftp_root_folder>"
         return 1
     fi
     
     # Ensure SFTP_ROOT_FOLDER folder exists and is owned by root
     if [ ! -d "$SFTP_ROOT_FOLDER" ] || [ "$(stat -c '%U' "$SFTP_ROOT_FOLDER")" != "root" ]; then
-        echo "ERROR: SFTP root folder '$SFTP_ROOT_FOLDER' must exist and be owned by root."
+        sct_echo_red "ERROR: SFTP root folder '$SFTP_ROOT_FOLDER' must exist and be owned by root."
         return 1
     fi
     
@@ -92,7 +124,7 @@ sct_create_and_setup_sftp_user() {
     if ! id -u "$USERNAME" >/dev/null 2>&1; then
         adduser --system --ingroup "$USER_GROUP" --shell=/usr/sbin/nologin "$USERNAME" > /dev/null
     else
-        echo "ERROR: User '$USERNAME' already exists."
+        sct_echo_red "ERROR: User '$USERNAME' already exists."
         return 1
     fi
 
@@ -126,7 +158,7 @@ sct_prompt_for_variable() {
 
     read -p "$prompt_message:" user_input
     if [ -z "$user_input" ]; then
-        echo "ERROR: Input cannot be empty."
+        sct_echo_red "ERROR: Input cannot be empty."
         return 1
     fi
     echo "$user_input"
@@ -155,8 +187,8 @@ sct_create_dir_if_missing_and_set_permisions() {
         mkdir -p "$dir"
         fi
 
-    chown -R "$userandgroup" "$dir" || { echo "ERROR: Failed to set ownership for $dir"; return 1; }
-    chmod -R "$perm" "$dir" || { echo "ERROR: Failed to set permissions for $dir"; return 1; }
+    chown -R "$userandgroup" "$dir" || { sct_echo_red "ERROR: Failed to set ownership for $dir"; return 1; }
+    chmod -R "$perm" "$dir" || { sct_echo_red "ERROR: Failed to set permissions for $dir"; return 1; }
 
     echo "Folder '$dir' assigned to '$userandgroup' with permissions '$perm'."
 }
@@ -174,8 +206,8 @@ sct_create_file_if_missing_and_set_permisions() {
         touch "$file"
     fi
 
-    chown "$userandgroup" "$file" || { echo "ERROR: Failed to set ownership for $file"; return 1; }
-    chmod "$perm" "$file" || { echo "ERROR: Failed to set permissions for $file"; return 1; }
+    chown "$userandgroup" "$file" || { sct_echo_red "ERROR: Failed to set ownership for $file"; return 1; }
+    chmod "$perm" "$file" || { sct_echo_red "ERROR: Failed to set permissions for $file"; return 1; }
 
     echo "File '$file' assigned to '$userandgroup' with permissions '$perm'."
 }
@@ -197,7 +229,7 @@ sct_docker_compose_up_with_env_vars() {
 
     # Start Docker containers
     if ! docker compose up -d --quiet-pull > /dev/null; then
-        echo "Error: Failed to start Docker containers."
+        sct_echo_red "Error: Failed to start Docker containers."
         docker compose logs
         return 1
     fi
@@ -222,7 +254,7 @@ sct_docker_compose_down_with_env_vars() {
 
     # Stop Docker containers
     if ! docker compose down > /dev/null; then
-        echo "Error: Failed to stop Docker containers."
+        sct_echo_red "Error: Failed to stop Docker containers."
         docker compose logs
         return 1
     fi
@@ -259,7 +291,7 @@ sct_add_cron_job() {
     if crontab -l 2>/dev/null | grep -Fxq -- "$job"; then
         echo "Cron job added successfully: $job"
     else
-        echo "ERROR: Failed to add cron job: $job"
+        sct_echo_red "ERROR: Failed to add cron job: $job"
         return 1
     fi
 }
@@ -272,7 +304,7 @@ sct_execute_subscript_isolated_with_env_vars() {
     shift
     
     if [ ! -f "$script_path" ]; then
-        sct_console_show_error "Subscript not found at '$script_path'"
+        sct_echo_red "Subscript not found at '$script_path'"
         return 1
     fi
 

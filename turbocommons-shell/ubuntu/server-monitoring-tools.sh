@@ -1,6 +1,14 @@
 #!/bin/bash
 
 
+# Note: This sript requires script-common-tools.sh to be sourced before running it.
+# This is verified here, and an error is raised if not.
+if ! declare -F sct_enable_global_errors_handling > /dev/null; then
+    echo "ERROR: script-common-tools.sh was not sourced. Please source it before running this script."
+    exit 1
+fi
+
+
 # Installs Prometheus, Grafana, and Node Exporter using Docker to monitor system metrics.
 # It creates the necessary configuration files and directories under /opt/prometheus-grafana
 # and uses docker-compose to manage the services.
@@ -15,11 +23,7 @@ smt_install_prometheus_grafana() {
 
     echo -e "\nSetting up Prometheus, Grafana, and Node Exporter..."
     
-    # Ensure Docker is installed
-    if ! command -v docker &> /dev/null; then
-        echo "ERROR: Docker is not installed. Please install Docker and try again."
-        exit 1
-    fi
+    sct_docker_must_be_installed
     
     # Define paths where the monitoring containers docker compose project will reside
     local base_dir="/opt/prometheus-grafana"
@@ -95,23 +99,23 @@ EOF
     
     # Start services using Docker Compose
     if ! docker compose -f "$compose_file" up -d --quiet-pull > /dev/null; then
-        echo "ERROR: Failed to start monitoring stack with Docker Compose."
+        sct_echo_red "ERROR: Failed to start monitoring stack with Docker Compose."
         docker compose -f "$compose_file" logs
         return 1
     fi
-    
-    echo "Prometheus and Grafana setup complete."
+
     docker compose -f "$compose_file" ps
-    echo ""
-    echo "Grafana is accessible at http://<your-ip>:3000 (login: $admin_user/$admin_password)"
-    echo ""
+    sct_echo_green "Prometheus and Grafana setup complete."
+    sct_echo_green "\nGrafana is accessible at http://<your-ip>:3000 (login: $admin_user/$admin_password)\n"
 }
 
 
 # Waits for Grafana to be ready by polling its HTTP endpoint.
-# Returns 0 if Grafana is ready, 1 if it times out.
+# If the maximum number of attempts is reached, it exits with an error.
 smt_wait_for_grafana_to_be_ready() {
-    echo -e "Waiting for Grafana to be available..."
+    echo "Waiting for Grafana to be available..."
+    
+    sct_curl_must_be_installed
 
     local grafana_url="http://localhost:3000"
     local max_attempts=20
@@ -125,8 +129,8 @@ smt_wait_for_grafana_to_be_ready() {
     done
 
     if [ $attempt -eq $max_attempts ]; then
-        echo "ERROR: Grafana did not start. Please check the container status."
-        return 1
+        sct_echo_red "ERROR: Grafana did not start. Please check the container status."
+        exit 1
     fi
 }
 
@@ -142,7 +146,7 @@ smt_setup_prometheus_as_grafana_datasource() {
     
     # Validate input parameters
     if [ -z "$admin_user" ] || [ -z "$admin_pass" ]; then
-        echo "Usage: smt_setup_prometheus_as_grafana_datasource <admin_user> <admin_pass>"
+        sct_echo_red "Usage: smt_setup_prometheus_as_grafana_datasource <admin_user> <admin_pass>"
         return 1
     fi
     
@@ -152,16 +156,7 @@ smt_setup_prometheus_as_grafana_datasource() {
     local api_endpoint="/api/datasources"
     local datasource_name="Prometheus"
     
-    # Ensure curl is installed
-    if ! command -v curl &> /dev/null; then
-        echo "ERROR: curl is not installed. Please install curl and try again."
-        return 1
-    fi
-
-    # Wait for Grafana to be ready
-    if ! smt_wait_for_grafana_to_be_ready; then
-        return 1
-    fi
+    smt_wait_for_grafana_to_be_ready
 
     # Check if datasource already exists
     local existing_ds=$(curl -s -u "$admin_user:$admin_pass" "$grafana_url$api_endpoint" | grep -o "\"name\":\"$datasource_name\"")
@@ -184,11 +179,10 @@ smt_setup_prometheus_as_grafana_datasource() {
     local response=$(curl -s -X POST -H "Content-Type: application/json" -u "$admin_user:$admin_pass" "$grafana_url$api_endpoint" -d "$payload")
 
     if echo "$response" | grep -q "Datasource added"; then
-        echo "Prometheus successfully set as Grafana datasource."
-        echo ""
+        echo -e "Prometheus successfully set as Grafana datasource.\n"
         return 0
     else
-        echo "ERROR: Failed to add Prometheus datasource."
+        sct_echo_red "ERROR: Failed to add Prometheus datasource."
         echo "Response: $response"
         echo ""
         return 1
@@ -207,7 +201,7 @@ smt_import_dashboard_into_grafana() {
     
     # Validate input parameters
     if [ -z "$admin_user" ] || [ -z "$admin_pass" ] || [ -z "$dashboard_id" ]; then
-        echo "Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>"
+        sct_echo_red "Usage: smt_import_dashboard_into_grafana <grafana_admin_user> <grafana_admin_pass> <dashboard_id>"
         return 1
     fi
     
@@ -215,22 +209,13 @@ smt_import_dashboard_into_grafana() {
     local grafana_url="http://localhost:3000"
     local api_endpoint="/api/dashboards/db"
     
-    # Ensure curl is installed
-    if ! command -v curl &> /dev/null; then
-        echo "ERROR: curl is not installed. Please install curl and try again."
-        return 1
-    fi
-    
-    # Wait for Grafana to be ready
-    if ! smt_wait_for_grafana_to_be_ready; then
-        return 1
-    fi
+    smt_wait_for_grafana_to_be_ready
     
     # Download the dashboard JSON from grafana.com
     local dashboard_download_url="https://grafana.com/api/dashboards/$dashboard_id/revisions/latest/download"
     local downloaded_json=$(curl -s "$dashboard_download_url")
     if [ -z "$downloaded_json" ] || echo "$downloaded_json" | grep -q "not found"; then
-        echo "ERROR: Failed to download dashboard JSON from $dashboard_download_url."
+        sct_echo_red "ERROR: Failed to download dashboard JSON from $dashboard_download_url."
         return 1
     fi
     
@@ -244,13 +229,47 @@ smt_import_dashboard_into_grafana() {
 EOF
 )
     if echo "$response" | grep -q "success"; then
-        echo "Dashboard $dashboard_id successfully imported into Grafana."
-        echo ""
+        echo -e "Dashboard $dashboard_id successfully imported into Grafana.\n"
         return 0
     else
-        echo "ERROR: Failed to import dashboard $dashboard_id."
+        sct_echo_red "ERROR: Failed to import dashboard $dashboard_id."
         echo "Response: $response"
         echo ""
         return 1
     fi
 }
+
+
+# Sets a dashboard as the home default dashboard in Grafana.
+# This means that when users log in, they will see this dashboard by default.
+# Usage: smt_set_home_dashboard <grafana_admin_user> <grafana_admin_pass> <dashboard_uid>
+# example: smt_set_home_dashboard "admin" "admin" "1860"
+smt_set_home_dashboard() {
+    local admin_user="$1"
+    local admin_pass="$2"
+    local dashboard_uid="$3"
+
+    if [ -z "$admin_user" ] || [ -z "$admin_pass" ] || [ -z "$dashboard_uid" ]; then
+        sct_echo_red "Usage: smt_set_home_dashboard <grafana_admin_user> <grafana_admin_pass> <dashboard_uid>"
+        return 1
+    fi
+
+    local grafana_url="http://localhost:3000"
+    local api_endpoint="/api/user/preferences"
+    local payload="{\"homeDashboardUID\":\"$dashboard_uid\"}"
+
+    smt_wait_for_grafana_to_be_ready
+
+    local response=$(curl -s -X PUT -H "Content-Type: application/json" -u "$admin_user:$admin_pass" \
+        "$grafana_url$api_endpoint" -d "$payload")
+
+    if echo "$response" | grep -q "\"homeDashboardUID\""; then
+        echo -e "Dashboard $dashboard_uid set as home dashboard.\n"
+        return 0
+    else
+        sct_echo_red "ERROR: Failed to set home dashboard."
+        echo "Response: $response"
+        return 1
+    fi
+}
+
