@@ -19,4 +19,4 @@ source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sh
 source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/server-monitoring-tools.sh")
 ```
 
-Were <sha> is the hash of the commit you want to import. All the methods will be directly available for your script.
+Were **\<sha\>** is the hash of the commit you want to import. After that, all the methods will be directly available to your script.
