@@ -8,7 +8,7 @@ The utilities are classified into different folders depending on the OS or distr
 
 ## How to use in ubuntu distributions
 
-To import a set of utilities into your own script, simply put the following at the beginning:
+To import a set of utilities into your own script, simply put the following at the beginning, were **\<sha\>** is the hash of the commit you want to import. After that, all the methods will be directly available to your script:
 
 ```
 # Load turbocommons common tools from github
@@ -19,4 +19,3 @@ source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sh
 source <(curl -fsSL "https://raw.githubusercontent.com/edertone/turbocommons/<sha>/turbocommons-shell/ubuntu/server-monitoring-tools.sh")
 ```
 
-Were **\<sha\>** is the hash of the commit you want to import. After that, all the methods will be directly available to your script.
