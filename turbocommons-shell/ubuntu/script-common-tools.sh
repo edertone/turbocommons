@@ -42,6 +42,37 @@ sct_user_must_exist() {
     fi
 }
 
+# Checks if curl is installed, exits with error if not.
+sct_curl_must_be_installed() {
+    if ! command -v curl &> /dev/null; then
+        sct_echo_red "ERROR: curl is not installed. Please install curl and try again."
+        exit 1
+    fi
+}
+
+# Checks if docker is installed, exits with error if not.
+sct_docker_must_be_installed() {
+    if ! command -v docker &> /dev/null; then
+        sct_echo_red "ERROR: Docker is not installed. Please install Docker and try again."
+        exit 1
+    fi
+}
+
+# Install Docker CE if not already installed
+sct_install_docker_if_not_exists() {
+    if ! command -v docker &> /dev/null; then
+        echo "Installing Docker CE..."
+        apt-get update > /dev/null
+        apt-get install -y ca-certificates curl gnupg lsb-release > /dev/null
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        apt-get update > /dev/null
+        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
+        echo "Docker CE installation complete. Version: $(docker --version)"
+    fi
+}
+
 # Setup swap file if not present, with configurable size (e.g., 2G, 2048M)
 # Usage: sct_setup_swap 2G or sct_setup_swap 2048M
 sct_setup_swap_if_not_enabled() {
@@ -61,34 +92,12 @@ sct_setup_swap_if_not_enabled() {
     fi
 }
 
-# Install Docker CE if not already installed
-sct_install_docker_if_not_exists() {
-    if ! command -v docker &> /dev/null; then
-        echo "Installing Docker CE..."
-        apt-get update > /dev/null
-        apt-get install -y ca-certificates curl gnupg lsb-release > /dev/null
-        install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-        apt-get update > /dev/null
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
-        echo "Docker CE installation complete. Version: $(docker --version)"
-    fi
-}
-
-# Checks if curl is installed, exits with error if not.
-sct_curl_must_be_installed() {
-    if ! command -v curl &> /dev/null; then
-        sct_echo_red "ERROR: curl is not installed. Please install curl and try again."
-        exit 1
-    fi
-}
-
-# Checks if docker is installed, exits with error if not.
-sct_docker_must_be_installed() {
-    if ! command -v docker &> /dev/null; then
-        sct_echo_red "ERROR: Docker is not installed. Please install Docker and try again."
-        exit 1
+# Install zip cmd if not already installed
+sct_install_zip_if_not_exists() {
+    if ! command -v zip &> /dev/null; then
+        echo "zip not found, installing..."
+        sudo apt update
+        sudo apt install -y zip
     fi
 }
 
