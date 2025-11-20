@@ -96,8 +96,9 @@ sct_setup_swap_if_not_enabled() {
 sct_install_zip_if_not_exists() {
     if ! command -v zip &> /dev/null; then
         echo "zip not found, installing..."
-        sudo apt update
-        sudo apt install -y zip
+        sudo apt update > /dev/null
+        sudo apt install -y zip > /dev/null
+        echo "zip installation complete."
     fi
 }
 
