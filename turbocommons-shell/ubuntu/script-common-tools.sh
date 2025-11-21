@@ -42,6 +42,18 @@ sct_user_must_exist() {
     fi
 }
 
+# Reads global variables from an environment file and exports them as global variables
+# Usage: sct_read_global_variables_from_env_file "/path/to/envfile"
+sct_read_global_variables_from_env_file() {
+    local env_file="$1"
+    if [ ! -f "$env_file" ]; then
+        sct_echo_red "ERROR: Environment file '$env_file' not found."
+        exit 1
+    fi
+
+    export $(grep -v '^#' "$env_file" | xargs)
+}
+
 # Checks if curl is installed, exits with error if not.
 sct_curl_must_be_installed() {
     if ! command -v curl &> /dev/null; then
@@ -160,30 +172,46 @@ Match User $USERNAME
     echo "User SFTP '$USERNAME' created successfully."
 }
 
-# Prompt the user for a value and set it to a variable (empty input is not allowed)
-# Usage: VAR_NAME=$(sct_prompt_for_variable "message")
+# Prompt for a value and export it to the given variable name (empty input is not allowed)
+# NOTICE: If the variable is already set, nothing is done
+# Usage: sct_prompt_for_variable VAR_NAME "message"
 sct_prompt_for_variable() {
-    local prompt_message="$1"
-    local user_input
+    local var_name="$1"
+    local prompt_message="$2"
+    local current_value="${!var_name}"
 
+    if [ -n "$current_value" ]; then
+        sct_echo_yellow "$var_name is already set with value: $current_value"
+        return 0
+    fi
+
+    local user_input
     read -p "$prompt_message:" user_input
     if [ -z "$user_input" ]; then
         sct_echo_red "ERROR: Input cannot be empty."
         return 1
     fi
-    echo "$user_input"
+    export "$var_name"="$user_input"
 }
 
-# Prompt the user for a value and set it to a variable or return a default value if input is empty
-# Usage: VAR_NAME=$(sct_prompt_for_variable_or_default "message" "default-user")
+# Prompt the user for a value and export it to the given variable name, or use default if input is empty
+# NOTICE: If the variable is already set, nothing is done
+# Usage: sct_prompt_for_variable_or_default VAR_NAME "message" "default-value"
 sct_prompt_for_variable_or_default() {
-    local prompt_message="$1"
-    local default_value="$2"
-    local user_input
+    local var_name="$1"
+    local prompt_message="$2"
+    local default_value="$3"
+    local current_value="${!var_name}"
 
-    read -p "$prompt_message[$default_value]:" user_input
+    if [ -n "$current_value" ]; then
+        sct_echo_yellow "$var_name is already set with value: $current_value"
+        return 0
+    fi
+
+    local user_input
+    read -p "$prompt_message [$default_value]:" user_input
     user_input=${user_input:-$default_value}
-    echo "$user_input"
+    export "$var_name"="$user_input"
 }
 
 # Create a folder if it does not exist and set its permissions and ownership
