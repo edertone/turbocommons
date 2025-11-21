@@ -43,16 +43,24 @@ sct_user_must_exist() {
 }
 
 # Reads global variables from an environment file and exports them as global variables
-# if the file does not exist, nothing is done
+# if the file does not exist, the provided message will be printed and the function returns
 # Lines starting with # are ignored as comments
-# Usage: sct_read_global_variables_from_env_file "/path/to/envfile"
+# Usage: sct_read_global_variables_from_env_file "/path/to/envfile" "File not found message"
 sct_read_global_variables_from_env_file() {
     local env_file="$1"
+    local file_not_found_message="$2"
     if [ ! -f "$env_file" ]; then
-        exit 0
+        echo "$file_not_found_message"
+        return 0
     fi
 
-    export $(grep -v '^#' "$env_file" | xargs)
+    # Use sed to remove carriage returns, then process lines
+    # that are not comments and not empty.
+    while IFS= read -r line; do
+        if [[ -n "$line" && ! "$line" =~ ^# ]]; then
+            export "$line"
+        fi
+    done < <(sed 's/\r$//' "$env_file")
 }
 
 # Checks if curl is installed, exits with error if not.
