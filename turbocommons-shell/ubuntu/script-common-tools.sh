@@ -56,7 +56,8 @@ sct_read_global_variables_from_env_file() {
 
     # Use sed to remove carriage returns, then process lines
     # that are not comments and not empty.
-    while IFS= read -r line; do
+    # The `|| [[ -n "$line" ]]` part ensures the last line is read even if it's missing a newline.
+    while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ -n "$line" && ! "$line" =~ ^# ]]; then
             export "$line"
         fi
