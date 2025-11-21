@@ -43,12 +43,13 @@ sct_user_must_exist() {
 }
 
 # Reads global variables from an environment file and exports them as global variables
+# if the file does not exist, nothing is done
+# Lines starting with # are ignored as comments
 # Usage: sct_read_global_variables_from_env_file "/path/to/envfile"
 sct_read_global_variables_from_env_file() {
     local env_file="$1"
     if [ ! -f "$env_file" ]; then
-        sct_echo_red "ERROR: Environment file '$env_file' not found."
-        exit 1
+        exit 0
     fi
 
     export $(grep -v '^#' "$env_file" | xargs)
@@ -181,7 +182,7 @@ sct_prompt_for_variable() {
     local current_value="${!var_name}"
 
     if [ -n "$current_value" ]; then
-        sct_echo_yellow "$var_name is already set with value: $current_value"
+        sct_echo_yellow "$var_name is set with value: $current_value"
         return 0
     fi
 
@@ -191,7 +192,7 @@ sct_prompt_for_variable() {
         sct_echo_red "ERROR: Input cannot be empty."
         return 1
     fi
-    export "$var_name"="$user_input"
+    export "$var_name=$user_input"
 }
 
 # Prompt the user for a value and export it to the given variable name, or use default if input is empty
@@ -204,14 +205,14 @@ sct_prompt_for_variable_or_default() {
     local current_value="${!var_name}"
 
     if [ -n "$current_value" ]; then
-        sct_echo_yellow "$var_name is already set with value: $current_value"
+        sct_echo_yellow "$var_name is set with value: $current_value"
         return 0
     fi
 
     local user_input
     read -p "$prompt_message [$default_value]:" user_input
     user_input=${user_input:-$default_value}
-    export "$var_name"="$user_input"
+    export "$var_name=$user_input"
 }
 
 # Create a folder if it does not exist and set its permissions and ownership
