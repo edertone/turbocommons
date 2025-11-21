@@ -59,14 +59,7 @@ sct_read_global_variables_from_env_file() {
     # The `|| [[ -n "$line" ]]` part ensures the last line is read even if it's missing a newline.
     while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ -n "$line" && ! "$line" =~ ^# ]]; then
-            # Extract variable name and value
-            local var_name="${line%%=*}"
-            local var_value="${line#*=}"
-            
-            # Escape $ characters by doubling them for Docker Compose compatibility
-            var_value="${var_value//\$/\$\$}"
-            
-            export "$var_name=$var_value"
+            export "$line"
         fi
     done < <(sed 's/\r$//' "$env_file")
 }
