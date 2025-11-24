@@ -14,12 +14,13 @@ fi
 # and uses docker-compose to manage the services.
 # Grafana will be available at http://<host-ip>:3000 with the provided user and password
 # (defaults to admin/admin if not specified).
-# Usage: smt_install_prometheus_grafana <grafana_admin_user> <grafana_admin_password> <prometheus_retention_size>
-# Example: smt_install_prometheus_grafana "admin" "strongpassword" "2GB"
+# Usage: smt_install_prometheus_grafana <grafana_admin_user> <grafana_admin_password> <prometheus_retention_size> <grafana_app_name>
+# Example: smt_install_prometheus_grafana "admin" "strongpassword" "2GB" "MyGrafana custom ui name"
 smt_install_prometheus_grafana() {
     local admin_user="${1:-admin}"
     local admin_password="${2:-admin}"
     local retention_size="${3:-1GB}"
+    local grafana_app_name="${4:-Grafana}"
 
     echo -e "\nSetting up Prometheus, Grafana, and Node Exporter..."
     
@@ -85,6 +86,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=$admin_user
       - GF_SECURITY_ADMIN_PASSWORD=$admin_password
+      - GF_SERVER_APP_NAME=$grafana_app_name
     ports:
       - "3000:3000"
     restart: unless-stopped
