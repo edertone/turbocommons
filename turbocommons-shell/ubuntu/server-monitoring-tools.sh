@@ -89,12 +89,16 @@ services:
       - "3000:3000"
     restart: unless-stopped
     
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    ports:
-      - "127.0.0.1:9100:9100"
-    restart: unless-stopped
+    node-exporter:
+        image: prom/node-exporter:latest
+        container_name: node-exporter
+        volumes:
+          - /:/host:ro,rslave
+        command:
+          - '--path.rootfs=/host'
+        ports:
+          - "127.0.0.1:9100:9100"
+        restart: unless-stopped
 EOF
     
     # Start services using Docker Compose
