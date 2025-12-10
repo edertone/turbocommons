@@ -25,20 +25,20 @@ class TableObject{
 
     /**
      * Stores a list with all the column names on the table.
-     * The values are stored as key / value where key is the column index and value the column label
+     * We use null to represent a column that has no name assigned (default state).
      *
-     * @var HashMapObject
+     * @var array
      */
-    protected $_columnNames;
+    protected $_columnNames = [];
 
 
     /**
      * Stores all the table cells data.
-     * The values are stored as key / value where key is the row and column index (r-c) and value the stored item
+     * The values are stored as a 2D array [row][column]
      *
-     * @var HashMapObject
+     * @var array
      */
-    protected $_cells;
+    protected $_cells = [];
 
 
     /**
@@ -80,6 +80,10 @@ class TableObject{
 
             $this->_columnsCount = $columns;
 
+            // Initialize empty column names with null.
+            // Null indicates "no name", ensuring searching for "" (empty string) fails unless explicitly set.
+            $this->_columnNames = array_fill(0, $this->_columnsCount, null);
+
         }else{
 
             if(is_array($columns)){
@@ -99,9 +103,11 @@ class TableObject{
             throw new UnexpectedValueException('constructor columns cannot be empty if rows are positive and vice versa');
         }
 
-        $this->_columnNames = new HashMapObject();
-
-        $this->_cells = new HashMapObject();
+        // Initialize cells with null values to match expected behavior
+        if($this->_rowsCount > 0 && $this->_columnsCount > 0){
+            $rowTemplate = array_fill(0, $this->_columnsCount, null);
+            $this->_cells = array_fill(0, $this->_rowsCount, $rowTemplate);
+        }
     }
 
 
@@ -124,7 +130,7 @@ class TableObject{
             throw new UnexpectedValueException('name must be a string');
         }
 
-        $this->_columnNames->set((string)$columnIndex, $name);
+        $this->_columnNames[$columnIndex] = $name;
 
         return true;
     }
@@ -149,17 +155,16 @@ class TableObject{
             }
 
             $namesCount = count($names);
-            $this->_columnNames = new HashMapObject();
 
+            // Validate all are strings first
             for ($i = 0; $i < $namesCount; $i++) {
-
                 if(!StringUtils::isString($names[$i])){
-
                     throw new UnexpectedValueException('List of names must be an array of strings');
                 }
-
-                $this->_columnNames->set((string)$i, $names[$i]);
             }
+
+            // Assign keys strictly to ensure 0-indexed array
+            $this->_columnNames = array_values($names);
 
             return $names;
         }
@@ -176,16 +181,10 @@ class TableObject{
      */
     public function getColumnNames(){
 
-        $result = [];
-
-        for ($i = 0; $i < $this->_columnsCount; $i++) {
-
-            $key = (string)$i;
-
-            $result[] = $this->_columnNames->isKey($key) ? $this->_columnNames->get($key) : '';
-        }
-
-        return $result;
+        // Convert internal nulls to empty strings for output
+        return array_map(function($name) {
+            return $name === null ? '' : $name;
+        }, $this->_columnNames);
     }
 
 
@@ -198,16 +197,10 @@ class TableObject{
      */
     public function getColumnName(int $columnIndex){
 
-        $key = (string)$this->_validateColumnIndex($columnIndex);
+        $idx = $this->_validateColumnIndex($columnIndex);
 
-        if($this->_columnNames->isKey($key)){
-
-            return $this->_columnNames->get($key);
-
-        }else{
-
-            return '';
-        }
+        // Return empty string if value is null (not set)
+        return $this->_columnNames[$idx] ?? '';
     }
 
 
@@ -227,14 +220,10 @@ class TableObject{
             throw new UnexpectedValueException('value must be a non empty string');
         }
 
-        $keys = $this->_columnNames->getKeys();
+        $index = array_search($name, $this->_columnNames, true);
 
-        foreach ($keys as $key) {
-
-            if($this->_columnNames->get($key) === $name){
-
-                return (int)$key;
-            }
+        if($index !== false){
+            return $index;
         }
 
         throw new UnexpectedValueException('provided column name does not exist');
@@ -255,8 +244,8 @@ class TableObject{
         $columnIndex = $this->_validateColumnIndex($column);
 
         for ($i = 0; $i < $this->_rowsCount; $i++) {
-
-            $result[] = $this->getCell($i, $columnIndex);
+            // Direct array access for speed
+            $result[] = $this->_cells[$i][$columnIndex] ?? null;
         }
 
         return $result;
@@ -285,42 +274,41 @@ class TableObject{
             throw new UnexpectedValueException('at must be a valid column index');
         }
 
-        if($at >= 0){
-
-            for ($i = $this->_columnsCount - 1; $i >= $at; $i--) {
-
-                if($this->_columnNames->isKey((string)$i)){
-
-                    $this->_columnNames->rename((string)$i, (string)($i + $number));
-                }
-
-                for($j = 0; $j < $this->_rowsCount; $j++){
-
-                    $rowAndCol = (string)$j.'-'.(string)$i;
-
-                    if($this->_cells->isKey($rowAndCol)){
-
-                        $this->_cells->rename($rowAndCol, (string)$j.'-'.(string)($i + $number));
-                    }
-                }
-            }
+        $namesCount = count($names);
+        if($namesCount > 0 && $namesCount != $number){
+            throw new UnexpectedValueException('names length must be the same as number');
         }
 
-        // Add the new column labels if defined
-        $namesCount = count($names);
+        // Prepare new column names. Default is null (unset).
+        $newNames = ($namesCount > 0) ? $names : array_fill(0, $number, null);
 
-        if($namesCount > 0){
+        // Prepare null values for the new cells
+        $newCells = array_fill(0, $number, null);
 
-            if($namesCount != $number){
+        if($at >= 0){
+            // Insert in the middle
+            array_splice($this->_columnNames, $at, 0, $newNames);
 
-                throw new UnexpectedValueException('names length must be the same as number');
+            for ($i = 0; $i < $this->_rowsCount; $i++) {
+                // Check if row exists, if not initialize it (sparse handling)
+                if(!isset($this->_cells[$i])) {
+                    $this->_cells[$i] = array_fill(0, $this->_columnsCount, null);
+                }
+                array_splice($this->_cells[$i], $at, 0, $newCells);
+            }
+        } else {
+            // Append to the end
+            foreach ($newNames as $name) {
+                $this->_columnNames[] = $name;
             }
 
-            $colIndex = $at < 0 ? $this->_columnsCount : $at;
-
-            for ($i = 0; $i < $namesCount; $i++) {
-
-                $this->_columnNames->set((string)($colIndex + $i), $names[$i]);
+            for ($i = 0; $i < $this->_rowsCount; $i++) {
+                if(!isset($this->_cells[$i])) {
+                    $this->_cells[$i] = array_fill(0, $this->_columnsCount, null);
+                }
+                foreach ($newCells as $val) {
+                    $this->_cells[$i][] = $val;
+                }
             }
         }
 
@@ -356,8 +344,7 @@ class TableObject{
         $columnIndex = $this->_validateColumnIndex($column);
 
         for ($i = 0; $i < $this->_rowsCount; $i++) {
-
-            $this->setCell($i, $columnIndex, $data[$i]);
+            $this->_cells[$i][$columnIndex] = $data[$i];
         }
     }
 
@@ -373,47 +360,22 @@ class TableObject{
 
         $columnIndex = $this->_validateColumnIndex($column);
 
-        // Remove column name if it exists
-        if($this->_columnNames->isKey((string)$columnIndex)){
+        // Remove column name using splice (re-indexes automatically)
+        array_splice($this->_columnNames, $columnIndex, 1);
 
-            $this->_columnNames->remove((string)$columnIndex);
-        }
-
-        // Remove all column values if they exist
+        // Remove column from each row
         for($i = 0; $i < $this->_rowsCount; $i++){
-
-            $rowAndCol = (string)$i.'-'.(string)$columnIndex;
-
-            if($this->_cells->isKey($rowAndCol)){
-
-                $this->_cells->remove($rowAndCol);
-            }
-        }
-
-        // Update indices for all columns that are after the removed one
-        for ($i = $columnIndex + 1; $i < $this->_columnsCount; $i++) {
-
-            if($this->_columnNames->isKey((string)$i)){
-
-                $this->_columnNames->rename((string)$i, (string)($i - 1));
-            }
-
-            for($j = 0; $j < $this->_rowsCount; $j++){
-
-                $rowAndCol = (string)$j.'-'.(string)$i;
-
-                if($this->_cells->isKey($rowAndCol)){
-
-                    $this->_cells->rename($rowAndCol, (string)$j.'-'.(string)($i - 1));
-                }
+            if(isset($this->_cells[$i])){
+                array_splice($this->_cells[$i], $columnIndex, 1);
             }
         }
 
         $this->_columnsCount --;
 
         if($this->_columnsCount <= 0){
-
             $this->_rowsCount = 0;
+            $this->_cells = [];
+            $this->_columnNames = [];
         }
     }
 
@@ -431,16 +393,7 @@ class TableObject{
         $rowIndex = $this->_validateRowIndex($row);
         $columnIndex = $this->_validateColumnIndex($column);
 
-        $key = $rowIndex.'-'.$columnIndex;
-
-        if($this->_cells->isKey($key)){
-
-            return $this->_cells->get($key);
-
-        }else{
-
-            return null;
-        }
+        return $this->_cells[$rowIndex][$columnIndex] ?? null;
     }
 
 
@@ -458,7 +411,14 @@ class TableObject{
         $rowIndex = $this->_validateRowIndex($row);
         $columnIndex = $this->_validateColumnIndex($column);
 
-        return $this->_cells->set($rowIndex.'-'.$columnIndex, $value);
+        // Ensure row exists (handling sparse creation logic if necessary, though construction fills them)
+        if (!isset($this->_cells[$rowIndex])) {
+            $this->_cells[$rowIndex] = array_fill(0, $this->_columnsCount, null);
+        }
+
+        $this->_cells[$rowIndex][$columnIndex] = $value;
+
+        return $value;
     }
 
 
@@ -471,16 +431,17 @@ class TableObject{
      */
     public function getRow(int $row){
 
-        $result = [];
-
         $rowIndex = $this->_validateRowIndex($row);
 
-        for ($i = 0; $i < $this->_columnsCount; $i++) {
+        $rowArray = $this->_cells[$rowIndex] ?? [];
 
-            $result[] = $this->getCell($rowIndex, $i);
+        // Ensure array size matches columns count by padding with nulls.
+        // This is necessary because CSVObject logic might expand columnsCount without backfilling rows.
+        if (count($rowArray) < $this->_columnsCount) {
+            return array_pad($rowArray, $this->_columnsCount, null);
         }
 
-        return $result;
+        return $rowArray;
     }
 
 
@@ -505,19 +466,16 @@ class TableObject{
             throw new UnexpectedValueException('at must be a valid row index');
         }
 
+        $rowTemplate = array_fill(0, $this->_columnsCount, null);
+        $newRows = array_fill(0, $number, $rowTemplate);
+
         if($at >= 0){
-
-            for ($i = $this->_rowsCount - 1; $i >= $at; $i--) {
-
-                for($j = 0; $j < $this->_columnsCount; $j++){
-
-                    $rowAndCol = (string)$i.'-'.(string)$j;
-
-                    if($this->_cells->isKey($rowAndCol)){
-
-                        $this->_cells->rename($rowAndCol, ($i + $number).'-'.(string)$j);
-                    }
-                }
+            // Insert in the middle
+            array_splice($this->_cells, $at, 0, $newRows);
+        } else {
+            // Append to the end
+            foreach($newRows as $row){
+                $this->_cells[] = $row;
             }
         }
 
@@ -552,10 +510,7 @@ class TableObject{
 
         $rowIndex = $this->_validateRowIndex($row);
 
-        for ($i = 0; $i < $this->_columnsCount; $i++) {
-
-            $this->setCell($rowIndex, $i, $data[$i]);
-        }
+        $this->_cells[$rowIndex] = array_values($data);
     }
 
 
@@ -570,36 +525,15 @@ class TableObject{
 
         $rowIndex = $this->_validateRowIndex($row);
 
-        // Remove all row values if they exist
-        for($i = 0; $i < $this->_columnsCount; $i++){
-
-            $rowAndCol = (string)$rowIndex.'-'.(string)$i;
-
-            if($this->_cells->isKey($rowAndCol)){
-
-                $this->_cells->remove($rowAndCol);
-            }
-        }
-
-        // Update indices for all rows that are after the removed one
-        for ($i = $rowIndex + 1; $i < $this->_rowsCount; $i++) {
-
-            for($j = 0; $j < $this->_columnsCount; $j++){
-
-                $rowAndCol = (string)$i.'-'.(string)$j;
-
-                if($this->_cells->isKey($rowAndCol)){
-
-                    $this->_cells->rename($rowAndCol, (string)($i - 1).'-'.(string)$j);
-                }
-            }
-        }
+        // Native array splice handles re-indexing automatically
+        array_splice($this->_cells, $rowIndex, 1);
 
         $this->_rowsCount --;
 
         if($this->_rowsCount <= 0){
-
             $this->_columnsCount = 0;
+            $this->_columnNames = [];
+            $this->_cells = [];
         }
     }
 
@@ -648,21 +582,15 @@ class TableObject{
      */
     private function _validateColumnIndex($column){
 
-        $columnIndex = NumericUtils::isInteger($column) ? $column : -1;
-        $columnNames = $this->_columnNames->getValues();
-        $columnNamesKeys = $this->_columnNames->getKeys();
-        $columnNamesCount = count($columnNames);
+        $columnIndex = -1;
 
-        if(StringUtils::isString($column)){
-
-            for ($i = 0; $i < $columnNamesCount; $i++) {
-
-                if($column === $columnNames[$i]){
-
-                    $columnIndex = (int)$columnNamesKeys[$i];
-
-                    break;
-                }
+        if(NumericUtils::isInteger($column)){
+            $columnIndex = $column;
+        } elseif (StringUtils::isString($column)) {
+            // Fast lookup in native array
+            $key = array_search($column, $this->_columnNames, true);
+            if($key !== false){
+                $columnIndex = $key;
             }
         }
 
@@ -696,5 +624,3 @@ class TableObject{
         return $rowIndex;
     }
 }
-
-?>

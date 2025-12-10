@@ -187,6 +187,29 @@ class CSVObject extends TableObject{
 
 
     /**
+     * Get all the elements that are located at the specified row index
+     * Overrides TableObject to ensure nulls are converted to empty strings (CSV behavior)
+     *
+     * @param integer $row An integer containing the index for the row that we want to retrieve
+     *
+     * @return array All the table elements that belong to the required row
+     */
+    public function getRow(int $row){
+
+        $result = parent::getRow($row);
+
+        // Convert null values to empty strings to preserve CSVObject behavior
+        foreach ($result as $key => $value) {
+            if ($value === null) {
+                $result[$key] = '';
+            }
+        }
+
+        return $result;
+    }
+
+
+    /**
      * Check if the provided value contains valid CSV information.
      *
      * @param mixed $value Object to test for valid CSV data. Accepted values are: Strings containing CSV data or CSVObject elements
@@ -204,7 +227,7 @@ class CSVObject extends TableObject{
         } catch (Throwable $e) {
 
             try {
-
+                
                 return ($value !== null) && (get_class($value) === 'org\\turbocommons\\src\\main\\php\\model\\CSVObject');
 
             } catch (Throwable $e) {
@@ -273,18 +296,11 @@ class CSVObject extends TableObject{
             for ($j = 0; $j < $thisColumns; $j++) {
 
                 $thisCell = $this->getCell($i, $j);
-
-                if($thisCell === null){
-
-                    $thisCell = '';
-                }
-
                 $cellToCompare = $objectToCompare->getCell($i, $j);
 
-                if($cellToCompare === null){
-
-                    $cellToCompare = '';
-                }
+                // CSV comparison treats null as empty string
+                if($thisCell === null) $thisCell = '';
+                if($cellToCompare === null) $cellToCompare = '';
 
                 if($thisCell !== $cellToCompare){
 
@@ -331,19 +347,9 @@ class CSVObject extends TableObject{
 
             for ($j = 0; $j < $columnsCount; $j++) {
 
-                $cell = '';
-
-                try {
-
-                    $cell = $this->_escapeField($this->_cells->get($i.'-'.$j), $delimiter, $enclosure);
-
-                } catch (Throwable $e) {
-
-                    // Nothing necessary.
-                    // This try chatch is used only to improve performance over $this->_cells->isKey($i.'-'.$j)
-                }
-
-                $row[] = $cell;
+                // Optimization: Access protected $_cells array directly inherited from TableObject
+                $val = $this->_cells[$i][$j] ?? '';
+                $row[] = $this->_escapeField($val, $delimiter, $enclosure);
             }
 
             $result .= implode($delimiter, $row)."\r\n";
@@ -374,7 +380,12 @@ class CSVObject extends TableObject{
             $this->_columnsCount ++;
         }
 
-        $this->_cells->set($currentRow.'-'.$currentColumn, $fieldValue);
+        // Ensure row array exists
+        if(!isset($this->_cells[$currentRow])) {
+            $this->_cells[$currentRow] = array_fill(0, $this->_columnsCount, null);
+        }
+
+        $this->_cells[$currentRow][$currentColumn] = $fieldValue;
     }
 
 
@@ -475,5 +486,3 @@ class CSVObject extends TableObject{
         $this->_hasHeaders = true;
     }
 }
-
-?>

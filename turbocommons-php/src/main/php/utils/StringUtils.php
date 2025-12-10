@@ -279,49 +279,48 @@ class StringUtils {
     public static function isCamelCase($string, string $type = self::FORMAT_CAMEL_CASE){
 
         if($string == null || $string == ''){
-
             return false;
         }
 
-        // Throw exception if non string value was received
         if(!is_string($string)){
-
             throw new InvalidArgumentException('value is not a string');
         }
 
-        // Single letter is accepted as default camel case
-        $isCamelCase = strlen($string) == 1;
+        // CamelCase must be Alphanumeric (Unicode aware) and cannot be purely numeric
+        if(!preg_match('/^[\p{L}\p{N}]+$/u', $string) || ctype_digit($string)){
+            return false;
+        }
 
-        // Single word that is shorter than 45 characters (the longest english word found in a major dictionary)
-        // is accepted as default camel case if all except the first letter are lowercase
-        $isCamelCase = $isCamelCase || (strlen($string) < 46 && ctype_alpha($string) && strtolower(substr($string, 1)) === substr($string, 1));
+        // Logic A: It is a "Simple Word" (All letters, <46 chars, tail is lowercase)
+        // This covers "c", "Camel", "camel", "ü"
+        $tail = mb_substr($string, 1);
+        $isSimpleWord = mb_strlen($string) < 46 &&
+        preg_match('/^\p{L}+$/u', $string) &&
+        mb_strtolower($tail) === $tail;
 
-        // Apply regex for default camel case validation
-        $isCamelCase = $isCamelCase || preg_match('/[A-Z|a-z]([A-Z0-9]*[a-z][a-z0-9]*[A-Z]|[a-z0-9]*[A-Z][A-Z0-9]*[a-z])[A-Za-z0-9]*/', $string) == 1;
+        // Logic B: It matches standard CamelCase "Hump" syntax (e.g., "camelCase", "XMLParser")
+        $matchesRegex = preg_match('/[A-Z|a-z]([A-Z0-9]*[a-z][a-z0-9]*[A-Z]|[a-z0-9]*[A-Z][A-Z0-9]*[a-z])[A-Za-z0-9]*/', $string) === 1;
+
+        if(!$isSimpleWord && !$matchesRegex){
+            return false;
+        }
+
+        // Apply Specific Constraints (Upper/Lower)
+        $firstChar = mb_substr($string, 0, 1);
 
         switch ($type) {
-
             case self::FORMAT_CAMEL_CASE:
-                break;
+                return true;
 
             case self::FORMAT_UPPER_CAMEL_CASE:
-                $isCamelCase = ctype_upper($string[0]) && $isCamelCase;
-
-                // Upper camel case type is also valid if all lowercase except the first letter and
-                // the whole word does not exceed the 45 characters of the longest english word found in a major dictionary
-                $isCamelCase = (strlen($string) < 46 && ctype_alpha($string) && ucfirst(strtolower($string)) == $string) || $isCamelCase;
-                break;
+                return mb_strtoupper($firstChar) === $firstChar;
 
             case self::FORMAT_LOWER_CAMEL_CASE:
-                $isCamelCase = ctype_lower($string[0]) && $isCamelCase;
-                break;
+                return mb_strtolower($firstChar) === $firstChar;
 
             default:
                 throw new InvalidArgumentException('Unknown type specified');
         }
-
-        // Perform a last alphanumeric validation before returning the result
-        return ctype_alnum($string) && !ctype_digit($string) && $isCamelCase;
     }
 
 

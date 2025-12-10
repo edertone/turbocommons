@@ -329,6 +329,7 @@ class StringUtilsTest extends TestCase {
 
         // Test correct FORMAT_CAMEL_CASE strings
         $this->assertTrue(StringUtils::isCamelCase('c'));
+        $this->assertTrue(StringUtils::isCamelCase('ü'));
         $this->assertTrue(StringUtils::isCamelCase('camel'));
         $this->assertTrue(StringUtils::isCamelCase('Hello'));
         $this->assertTrue(StringUtils::isCamelCase('CamelCase'));
@@ -364,7 +365,6 @@ class StringUtilsTest extends TestCase {
         $this->assertTrue(!StringUtils::isCamelCase('CamelCase.'));
         $this->assertTrue(!StringUtils::isCamelCase('CamelCa_1'));
         $this->assertTrue(!StringUtils::isCamelCase('cámel.Case'));
-        $this->assertTrue(!StringUtils::isCamelCase('ü'));
         $this->assertTrue(!StringUtils::isCamelCase('ÚMEL'));
 
         // Test correct FORMAT_UPPER_CAMEL_CASE strings

@@ -56,7 +56,7 @@ class HTTPManagerTest extends TestCase {
 
         $this->sut->timeout = 3000;
 
-        $this->basePath = 'https://raw.githubusercontent.com/edertone/TurboCommons/master/TurboCommons-Php/src/test/resources/managers/httpManager';
+        $this->basePath = 'https://raw.githubusercontent.com/edertone/turbocommons/master/turbocommons-php/src/test/resources/managers/httpManager';
         $this->existantUrl = 'https://www.google.com';
         $this->nonExistantUrl = 'http://werwerwerwerwerwerwe.345345/3453453454435dgdfg.html';
     }
