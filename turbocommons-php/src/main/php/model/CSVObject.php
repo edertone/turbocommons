@@ -36,7 +36,9 @@ class CSVObject extends TableObject{
      * columns and values and allows us to operate with it's data easily.
      *
      * @param string $string A string containing valid csv data
-     * @param boolean $headers Specifies if the first row of the provided csv data contains the column names or not. It is important to correctly set this value to avoid invalid data
+     * @param boolean $headers Specifies if the first row of the provided csv data contains the column names or not. It is important to
+     *                         correctly set this value to avoid invalid data. If set to true, the first row will be used as column names
+     *                         and removed from the data rows.
      * @param string $delimiter The character that is used as the csv delimiter. ',' is set by default
      * @param string $enclosure The character that is used to escape fields when special characters are found
      *
@@ -227,7 +229,7 @@ class CSVObject extends TableObject{
         } catch (Throwable $e) {
 
             try {
-                
+
                 return ($value !== null) && (get_class($value) === 'org\\turbocommons\\src\\main\\php\\model\\CSVObject');
 
             } catch (Throwable $e) {
