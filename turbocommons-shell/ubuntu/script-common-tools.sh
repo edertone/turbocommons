@@ -276,7 +276,7 @@ sct_docker_compose_up_with_env_vars() {
     done
 
     # Start Docker containers
-    if ! docker compose up -d --quiet-pull > /dev/null; then
+    if ! docker compose up -d --quiet-pull &> /dev/null; then
         sct_echo_red "Error: Failed to start Docker containers."
         docker compose logs
         return 1
@@ -310,7 +310,7 @@ sct_docker_compose_up_single_container_with_env_vars() {
         export "$var_name"="$var_value"
     done
 
-    if ! docker compose up -d --quiet-pull "$container_name" > /dev/null; then
+    if ! docker compose up -d --quiet-pull "$container_name" &> /dev/null; then
         sct_echo_red "Error: Failed to start Docker container '$container_name'."
         docker compose logs "$container_name"
         return 1
@@ -341,16 +341,16 @@ sct_docker_wait_for_healthy_status() {
 
         # Check the status
         if [ "$status" = "healthy" ]; then
-            echo "Success: '$container_name' is healthy!"
+            echo -e "Success: '$container_name' is healthy!\n"
             return 0
         elif [ "$status" = "unhealthy" ]; then
-            echo "Error: '$container_name' reports status 'unhealthy'. Aborting."
+            echo -e "Error: '$container_name' reports status 'unhealthy'. Aborting.\n"
             return 1
         elif [ "$status" = "none" ]; then
-            echo "Error: '$container_name' has no HEALTHCHECK defined."
+            echo -e "Error: '$container_name' has no HEALTHCHECK defined.\n"
             return 1
         elif [ -z "$status" ]; then
-            echo "Error: Container '$container_name' not found or not running."
+            echo -e "Error: Container '$container_name' not found or not running.\n"
             return 1
         fi
 
@@ -358,19 +358,19 @@ sct_docker_wait_for_healthy_status() {
         sleep "$sleep_time"
     done
 
-    echo "Error: Timeout waiting for '$container_name' to become healthy."
+    echo -e "Error: Timeout waiting for '$container_name' to become healthy.\n"
     return 1
 }
 
 
-# Stop Docker containers using docker compose DOWN
+# Stop ALL Docker containers using docker compose DOWN
 # Work dir must be the one containing docker-compose.yml
 sct_docker_compose_down() {
     
     echo -e "\nStopping ALL Docker containers..."
     
     # Stop Docker containers
-    if ! docker compose down > /dev/null; then
+    if ! docker compose down &> /dev/null; then
         sct_echo_red "Error: Failed to stop Docker containers."
         docker compose logs
         return 1
