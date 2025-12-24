@@ -286,20 +286,44 @@ sct_docker_compose_up_with_env_vars() {
     docker compose ps
 }
 
-# Stop Docker containers using docker compose DOWN
+
+# Start a single Docker container using docker compose UP
 # Work dir must be the one containing docker-compose.yml
+# ONLY the specified container will be started, all others will remain in their current state
 # Additional environment variables can be passed as arguments
-# Usage: sct_docker_compose_down_with_env_vars VAR1=value1 VAR2=value2 ...
-sct_docker_compose_down_with_env_vars() {
+# Usage: sct_docker_compose_up_single_container_with_env_vars <container_name> VAR1=value1 VAR2=value2 ...
+sct_docker_compose_up_single_container_with_env_vars() {
     
-    # Export the provided environment variables
-    echo -e "\nStop Docker containers with custom env vars"
+    local container_name="$1"
+    shift
+
+    if [ -z "$container_name" ]; then
+        sct_echo_red "Usage: sct_docker_compose_up_single_container_with_env_vars <container_name> [VAR1=value1 ...]"
+        return 1
+    fi
+
+    echo -e "\nStarting Docker container '$container_name' with custom env vars"
     for env_var in "$@"; do
         var_name="${env_var%%=*}"
         var_value="${env_var#*=}"
         export "$var_name"="$var_value"
     done
 
+    if ! docker compose up -d --quiet-pull "$container_name" > /dev/null; then
+        sct_echo_red "Error: Failed to start Docker container '$container_name'."
+        docker compose logs "$container_name"
+        return 1
+    fi
+
+    echo -e "\nDocker container '$container_name' launched. Status:"
+    docker compose ps "$container_name"    
+}
+
+
+# Stop Docker containers using docker compose DOWN
+# Work dir must be the one containing docker-compose.yml
+sct_docker_compose_down() {
+    
     # Stop Docker containers
     if ! docker compose down > /dev/null; then
         sct_echo_red "Error: Failed to stop Docker containers."
