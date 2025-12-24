@@ -268,7 +268,7 @@ sct_create_file_if_missing_and_set_permisions() {
 sct_docker_compose_up_with_env_vars() {
     
     # Export the provided environment variables
-    echo -e "\nStarting Docker containers with custom env vars"
+    echo -e "\nStarting Docker containers with custom env vars..."
     for env_var in "$@"; do
         var_name="${env_var%%=*}"
         var_value="${env_var#*=}"
@@ -282,8 +282,9 @@ sct_docker_compose_up_with_env_vars() {
         return 1
     fi
 
-    echo -e "\n\nDocker containers launched. Status:"
+    echo -e "\nDocker containers launched. Status:\n"
     docker compose ps
+    echo -e "\n\n"
 }
 
 
@@ -302,7 +303,7 @@ sct_docker_compose_up_single_container_with_env_vars() {
         return 1
     fi
 
-    echo -e "\nStarting Docker container '$container_name' with custom env vars"
+    echo -e "\nStarting Docker container '$container_name' with custom env vars..."
     for env_var in "$@"; do
         var_name="${env_var%%=*}"
         var_value="${env_var#*=}"
@@ -315,14 +316,17 @@ sct_docker_compose_up_single_container_with_env_vars() {
         return 1
     fi
 
-    echo -e "\nDocker container '$container_name' launched. Status:"
-    docker compose ps "$container_name"    
+    echo -e "\nDocker container '$container_name' launched. Status:\n"
+    docker compose ps "$container_name"
+    echo -e "\n\n" 
 }
 
 
 # Stop Docker containers using docker compose DOWN
 # Work dir must be the one containing docker-compose.yml
 sct_docker_compose_down() {
+    
+    echo -e "\nStopping ALL Docker containers..."
     
     # Stop Docker containers
     if ! docker compose down > /dev/null; then
@@ -331,7 +335,7 @@ sct_docker_compose_down() {
         return 1
     fi
 
-    echo -e "\n\nDocker containers stopped."
+    echo -e "\nALL Docker containers stopped.\n\n"
 }
 
 # Add a cron job for the current user, avoiding duplicates (if the job exists, nothing is done)
