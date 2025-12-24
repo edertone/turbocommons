@@ -268,7 +268,7 @@ sct_create_file_if_missing_and_set_permisions() {
 sct_docker_compose_up_with_env_vars() {
     
     # Export the provided environment variables
-    echo -e "\nStarting Docker containers with custom env vars..."
+    echo -e "\nStarting ALL Docker containers with custom env vars..."
     for env_var in "$@"; do
         var_name="${env_var%%=*}"
         var_value="${env_var#*=}"
@@ -284,7 +284,7 @@ sct_docker_compose_up_with_env_vars() {
 
     echo -e "\nDocker containers launched. Status:\n"
     docker compose ps
-    echo -e "\n\n"
+    echo -e "\n"
 }
 
 
@@ -318,7 +318,48 @@ sct_docker_compose_up_single_container_with_env_vars() {
 
     echo -e "\nDocker container '$container_name' launched. Status:\n"
     docker compose ps "$container_name"
-    echo -e "\n\n" 
+    echo -e "\n" 
+}
+
+
+# Wait for a Docker container to reach healthy status
+# Parameters are the container name, max retries (default 30), and sleep time between checks in seconds (default 4)
+# Usage: sct_docker_wait_for_healthy_status "container_name" [max_retries] [sleep_time_seconds]
+sct_docker_wait_for_healthy_status() {
+    
+    local container_name="$1"
+    local max_retries="${2:-30}"  # Default to 30 attempts
+    local sleep_time="${3:-4}"    # Default to 4 seconds sleep
+    local count=0
+
+    echo -e "\nWaiting for container '$container_name' to be healthy..."
+
+    while [ $count -lt $max_retries ]; do
+    
+        # inspect returns the health status (starting, healthy, unhealthy, or creates error if no healthcheck)
+        status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_name" 2>/dev/null)
+
+        # Check the status
+        if [ "$status" = "healthy" ]; then
+            echo "Success: '$container_name' is healthy!"
+            return 0
+        elif [ "$status" = "unhealthy" ]; then
+            echo "Error: '$container_name' reports status 'unhealthy'. Aborting."
+            return 1
+        elif [ "$status" = "none" ]; then
+            echo "Error: '$container_name' has no HEALTHCHECK defined."
+            return 1
+        elif [ -z "$status" ]; then
+            echo "Error: Container '$container_name' not found or not running."
+            return 1
+        fi
+
+        count=$((count + 1))
+        sleep "$sleep_time"
+    done
+
+    echo "Error: Timeout waiting for '$container_name' to become healthy."
+    return 1
 }
 
 
@@ -335,7 +376,7 @@ sct_docker_compose_down() {
         return 1
     fi
 
-    echo -e "\nALL Docker containers stopped.\n\n"
+    echo -e "ALL Docker containers stopped.\n"
 }
 
 # Add a cron job for the current user, avoiding duplicates (if the job exists, nothing is done)
