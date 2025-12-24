@@ -102,7 +102,7 @@ services:
 EOF
     
     # Start services using Docker Compose
-    if ! docker compose -f "$compose_file" up -d --quiet-pull > /dev/null; then
+    if ! docker compose -f "$compose_file" up -d --quiet-pull &> /dev/null; then
         sct_echo_red "ERROR: Failed to start monitoring stack with Docker Compose."
         docker compose -f "$compose_file" logs
         return 1

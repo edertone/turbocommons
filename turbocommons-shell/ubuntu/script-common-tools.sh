@@ -284,7 +284,6 @@ sct_docker_compose_up_with_env_vars() {
 
     echo -e "\nDocker containers launched. Status:\n"
     docker compose ps
-    echo -e "\n"
 }
 
 
@@ -318,7 +317,6 @@ sct_docker_compose_up_single_container_with_env_vars() {
 
     echo -e "\nDocker container '$container_name' launched. Status:\n"
     docker compose ps "$container_name"
-    echo -e "\n" 
 }
 
 
