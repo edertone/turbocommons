@@ -28,12 +28,3 @@
     npm publish
 
 12 - Verify that new versions appear for all the packages at www.npmjs.com/~edertone
-
-13 - Get the downloadable zip files for each target and update the files inside with the new versions
-    - docs, readme, compiled code, etc..
-
-14 - Upload the new zip versions to turboframework website for direct download
-    - review that zip download work as expected
-
-15 - Upload the new generated docs to the turboframework website
-    - review that links to docs still work
