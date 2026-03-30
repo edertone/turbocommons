@@ -6,10 +6,6 @@ Why must they learn new ways of doing the same thing every time they move to a n
 
 TurboCommons tries to standardize all those common operations so they are performed the same way across all possible languages. It is a library that uses the same methods and classes across all the implemented languages.
 
-### Documentation
-
-**A detailed code specification is available online. You can check it [here](https://turboframework.org/en/libs/turbocommons)**
-
 ### How to use it
 
 - Php:
@@ -62,11 +58,3 @@ The main goal for this library is to have zero dependencies. We are building a t
 ### Contribute
 
 Turbo Commons is 100% free and open source, but we will be really pleased to receive any help, support, comments or donations to help us improve this library. If you like it, spread the word!
-
-- You can get more info at the official site:
-
-	- [https://turboframework.org/en/libs/turbocommons](https://turboframework.org/en/libs/turbocommons)
-
-### Donate
-	
-[![Donate](https://turboframework.org/view/views/home/donate-button.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=53MJ6SY66WZZ2&lc=ES&item_name=TurboCommons&no_note=0&cn=A%c3%b1adir%20instrucciones%20especiales%20para%20el%20vendedor%3a&no_shipping=2&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted)
