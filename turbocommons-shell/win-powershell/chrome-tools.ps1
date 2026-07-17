@@ -3,26 +3,39 @@ function Start-ChromeApp {
         [Parameter(Mandatory = $true)]
         [string]$Url,
         [int]$Width = 1024,
-        [int]$Height = 768
+        [int]$Height = 768,
+        [int]$TimeoutMs = 5000
     )
 
-    # Load Windows API for resizing windows if not already loaded
     if (-not ("Win32.Win32MoveWindow" -as [type])) {
         Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);' -Name "Win32MoveWindow" -Namespace "Win32" | Out-Null
     }
 
-    # Launch Chrome app
-    $proc = Start-Process "chrome.exe" -ArgumentList "--app=$Url" -PassThru
-    Start-Sleep -Milliseconds 800  # Give Chrome a moment to render the window
+    # Snapshot existing chrome window handles BEFORE launching
+    $existingHandles = @(
+        Get-Process chrome -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowHandle -ne 0 } |
+        Select-Object -ExpandProperty MainWindowHandle
+    )
 
-    # Fallback: If Chrome was already running, $proc.MainWindowHandle might be 0.
-    # We look for the most recently created Chrome window handle instead.
-    $hWnd = $proc.MainWindowHandle
-    if ($hWnd -eq 0) {
-        $hWnd = (Get-Process chrome | Where-Object { $_.MainWindowHandle -ne 0 } | Sort-Object StartTime -Descending | Select-Object -First 1).MainWindowHandle
+    Start-Process "chrome.exe" -ArgumentList "--app=$Url" | Out-Null
+
+    # Poll for a NEW window handle that wasn't there before
+    $hWnd = 0
+    $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+    while ((Get-Date) -lt $deadline) {
+        $candidates = Get-Process chrome -ErrorAction SilentlyContinue
+        foreach ($p in $candidates) {
+            $p.Refresh()
+            if ($p.MainWindowHandle -ne 0 -and $existingHandles -notcontains $p.MainWindowHandle) {
+                $hWnd = $p.MainWindowHandle
+                break
+            }
+        }
+        if ($hWnd -ne 0) { break }
+        Start-Sleep -Milliseconds 100
     }
 
-    # Resize if a valid window handle was found
     if ($hWnd -and $hWnd -ne 0) {
         [Win32.Win32MoveWindow]::MoveWindow($hWnd, 100, 100, $Width, $Height, $true) | Out-Null
     }
